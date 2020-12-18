@@ -1,0 +1,81 @@
+%the player starts with 3 life points (up to 5).
+%the player loses if they lose all the life points.
+
+%a rune can be one of four types: a b c d.
+%a rune can be one of four colors: red green blue magenta.
+
+%a cell can be in one combination of two types: free or busy, incomplete or completed.
+%all the cells of a row or column become completed
+%if all the cells are busy, and all the cells become free.
+
+%the objective of the game is to complete all the cells.
+%the player gets a rune for every turn.
+%the rune may be placed or sacrificed.
+%a rune can be placed only next to a rune of the same type and/or color.
+%every rune placed in an incomplete cell is +5 points, +1 life point.
+%every rune placed in a complete cell is +1 point.
+%every rune sacrificed is -2 points, -1 life point.
+
+%there is a special type of rune, the blank:
+%it may be placed next to any rune, and can not be sacrificed.
+%by default, the central spot is occupied by the central rune.
+
+%busyCell(X,Y,T,Col,Comp).
+%emptyCell(X,Y,Comp).
+%inputRune(T,C).
+%sizeOfMatrix(S).
+
+canBePlaced(X,Y) | cannotBePlaced(X,Y) :- emptyCell(X,Y,Comp).
+
+%a rune can be placed only next to a rune of the same type and/or color.
+%0 is blank rune
+:- canBePlaced(X,Y), inputRune(T,C), busyCell(X1,Y1,T1,C1,Co1), T != T1, C != C1, X = X1+1, T != 0, T1 != 0.
+:- canBePlaced(X,Y), inputRune(T,C), busyCell(X1,Y1,T1,C1,Co1), T != T1, C != C1, X = X1-1, T != 0, T1 != 0.
+:- canBePlaced(X,Y), inputRune(T,C), busyCell(X1,Y1,T1,C1,Co1), T != T1, C != C1, Y = Y1+1, T != 0, T1 != 0.
+:- canBePlaced(X,Y), inputRune(T,C), busyCell(X1,Y1,T1,C1,Co1), T != T1, C != C1, Y = Y1-1, T != 0, T1 != 0.
+
+%blank rune can be placed in any spot
+canBePlaced(X,Y) :- emptyCell(X,Y), inputRune(0,_).
+
+%blank rune should be placed in a crowded situation
+:~ solution(X,Y), inputRune(0,_), surroundingCells(X,Y,W), surroundingBusyCells(X,Y,Z). [W-Z@3]
+
+surroundingCells(X,Y,4) :- canBePlaced(X,Y), sizeOfMatrix(S), X > 0, X < S, Y > 0, Y < S.
+surroundingCells(X,Y,3) :- canBePlaced(X,Y), sizeOfMatrix(S), X = 0, Y > 0, Y < S.
+surroundingCells(X,Y,3) :- canBePlaced(X,Y), sizeOfMatrix(S), X = S, Y > 0, Y < S.
+surroundingCells(X,Y,3) :- canBePlaced(X,Y), sizeOfMatrix(S), X > 0, X < S, Y = 0.
+surroundingCells(X,Y,3) :- canBePlaced(X,Y), sizeOfMatrix(S), X > 0, X < S, Y = S.
+surroundingCells(X,Y,2) :- canBePlaced(X,Y), sizeOfMatrix(S), X = 0, Y = 0.
+surroundingCells(X,Y,2) :- canBePlaced(X,Y), sizeOfMatrix(S), X = 0, Y = S.
+surroundingCells(X,Y,2) :- canBePlaced(X,Y), sizeOfMatrix(S), X = S, Y = S.
+surroundingCells(X,Y,2) :- canBePlaced(X,Y), sizeOfMatrix(S), X = S, Y = 0.
+
+
+
+
+
+%there should be 0 or 1 solutions, 1 is preferred
+solution(X,Y) | notSolution(X,Y) :- canBePlaced(X,Y).
+:- #count{X,Y : solution(X,Y)} > 1.
+:~ #count{X,Y : solution(X,Y)} = 1. [1@2]
+%an incomplete cell is preferred, but not necessary
+:~ solution(X,Y), emptyCell(X,Y,'true'). [1@1]
+
+
+
+%needARune(X,Y) :- emptyCell(X,Y,_), emptyCell(X,_,'false').
+%needARune(X,Y) :- emptyCell(X,Y,_), emptyCell(_,Y,'false').
+
+%kaboom(X,Y) :- emptyCell(X,Y), busyCell(X,Y1,_,C,_),busyCell(X,Y2,_,C,_),busyCell(X1,Y,_,C,_),busyCell(X2,Y,_,C,_), Y1 = Y+1, Y2 = Y-1, X1 = X+1, X2 = X-1.
+%kaboom(X,Y) :- emptyCell(X,Y), busyCell(X,Y1,T,_,_),busyCell(X,Y2,T,_,_),busyCell(X1,Y,T,_,_),busyCell(X2,Y,T,_,_), Y1 = Y+1, Y2 = Y-1, X1 = X+1, X2 = X-1.
+
+%stuckPlace(X,Y,4) :- needARune(X,Y), not kaboom(X,Y), busyCell(X,Y1,_,C1,_),busyCell(X,Y2,_,C2,_),busyCell(X1,Y,_,C3,_),busyCell(X2,Y,_,C4,_), Y1 = Y+1, Y2 = Y-1, X1 = X+1, X2 = X-1, C1 != C2, C1 != C3, C1 != C4, C2 != C3, C2 != C4, C3 != C4.
+%stuckPlace(X,Y,4) :- needARune(X,Y), not kaboom(X,Y), busyCell(X,Y1,T1,_,_),busyCell(X,Y2,T2,_,_),busyCell(X1,Y,T3,_,_),busyCell(X2,Y,T4,_,_), Y1 = Y+1, Y2 = Y-1, X1 = X+1, X2 = X-1, T1 != T2, T1 != T3, T1 != T4, T2 != T3, T2 != T4, T3 != T4.
+
+
+%stuckPlace(X,Y,3) :- needARune(X,Y), busyCell(X,Y1,_,C1,_),busyCell(X,Y2,_,C2,_),busyCell(X1,Y,_,C3,_),busyCell(X2,Y,_,C4,_), Y1 = Y+1, Y2 = Y-1, X1 = X+1, X2 = X-1, C1 = C2, C2 != C3, C3 != C4, C1 != C4.
+%stuckPlace(X,Y,3) :- needARune(X,Y), busyCell(X,Y1,_,C1,_),busyCell(X,Y2,_,C2,_),busyCell(X1,Y,_,C3,_),busyCell(X2,Y,_,C4,_), Y1 = Y+1, Y2 = Y-1, X1 = X+1, X2 = X-1, C1 != C2, C2 = C3, C3 != C4, C1 != C4.
+%stuckPlace(X,Y,3) :- needARune(X,Y), busyCell(X,Y1,_,C1,_),busyCell(X,Y2,_,C2,_),busyCell(X1,Y,_,C3,_),busyCell(X2,Y,_,C4,_), Y1 = Y+1, Y2 = Y-1, X1 = X+1, X2 = X-1, C1 != C2, C2 != C3, C3 = C4, C1 != C4.
+%stuckPlace(X,Y,3) :- needARune(X,Y), busyCell(X,Y1,_,C1,_),busyCell(X,Y2,_,C2,_),busyCell(X1,Y,_,C3,_),busyCell(X2,Y,_,C4,_), Y1 = Y+1, Y2 = Y-1, X1 = X+1, X2 = X-1, C1 != C2, C2 != C3, C3 != C4, C1 = C4.
+
+
