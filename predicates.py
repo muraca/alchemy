@@ -1,5 +1,5 @@
 from languages.predicate import Predicate
- 
+
 class InputRune(Predicate):
     predicate_name = 'inputRune'
 
@@ -65,6 +65,9 @@ class BusyCell(Predicate):
     def set_completed(self, completed):
         self.completed = completed
 
+    def is_empty(self):
+        return False
+
     def __str__(self):
         return "busyCell(" + str(self.posx) + "," + str(self.posy) + "," + str(self.typeOfRune) + "," + str(self.color) + "," + str(self.completed) + ")."
 
@@ -82,7 +85,7 @@ class EmptyCell(Predicate):
         return self.posx
 
     def get_posy(self):
-        return self.posx
+        return self.posy
 
     def get_completed(self):
         return self.completed
@@ -95,6 +98,9 @@ class EmptyCell(Predicate):
 
     def set_completed(self, completed):
         self.completed = completed
+
+    def is_empty(self):
+        return True
 
     def __str__(self):
         return "emptyCell(" + str(self.posx) + "," + str(self.posy) + "," + str(self.completed) + ")."
