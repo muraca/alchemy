@@ -35,10 +35,10 @@ canBePlaced(X,Y) | cannotBePlaced(X,Y) :- emptyCell(X,Y,Comp).
 :- canBePlaced(X,Y), inputRune(T,C), busyCell(X1,Y1,T1,C1,Co1), T != T1, C != C1, Y = Y1-1, T != 0, T1 != 0.
 
 %blank rune can be placed in any spot
-canBePlaced(X,Y) :- emptyCell(X,Y), inputRune(0,_).
+canBePlaced(X,Y) :- emptyCell(X,Y,_), inputRune(0,_).
 
 %blank rune should be placed in a crowded situation
-:~ solution(X,Y), inputRune(0,_), surroundingCells(X,Y,W), surroundingBusyCells(X,Y,Z). [W-Z@3]
+:~ solution(X,Y), inputRune(0,0), surroundingCells(X,Y,W), surroundingBusyCells(X,Y,Z). [W-Z@3]
 
 surroundingCells(X,Y,4) :- canBePlaced(X,Y), sizeOfMatrix(S), X > 0, X < S, Y > 0, Y < S.
 surroundingCells(X,Y,3) :- canBePlaced(X,Y), sizeOfMatrix(S), X = 0, Y > 0, Y < S.
@@ -50,21 +50,16 @@ surroundingCells(X,Y,2) :- canBePlaced(X,Y), sizeOfMatrix(S), X = 0, Y = S.
 surroundingCells(X,Y,2) :- canBePlaced(X,Y), sizeOfMatrix(S), X = S, Y = S.
 surroundingCells(X,Y,2) :- canBePlaced(X,Y), sizeOfMatrix(S), X = S, Y = 0.
 
-
-
-
-
 %there should be 0 or 1 solutions, 1 is preferred
 solution(X,Y) | notSolution(X,Y) :- canBePlaced(X,Y).
 :- #count{X,Y : solution(X,Y)} > 1.
-:~ #count{X,Y : solution(X,Y)} = 1. [1@2]
+:~ #count{X,Y : solution(X,Y)} = 0. [1@2]
 %an incomplete cell is preferred, but not necessary
-:~ solution(X,Y), emptyCell(X,Y,'true'). [1@1]
+:~ solution(X,Y), emptyCell(X,Y,1). [1@1]
 
 
-
-%needARune(X,Y) :- emptyCell(X,Y,_), emptyCell(X,_,'false').
-%needARune(X,Y) :- emptyCell(X,Y,_), emptyCell(_,Y,'false').
+%needARune(X,Y) :- emptyCell(X,Y,_), emptyCell(X,_,0).
+%needARune(X,Y) :- emptyCell(X,Y,_), emptyCell(_,Y,0).
 
 %kaboom(X,Y) :- emptyCell(X,Y), busyCell(X,Y1,_,C,_),busyCell(X,Y2,_,C,_),busyCell(X1,Y,_,C,_),busyCell(X2,Y,_,C,_), Y1 = Y+1, Y2 = Y-1, X1 = X+1, X2 = X-1.
 %kaboom(X,Y) :- emptyCell(X,Y), busyCell(X,Y1,T,_,_),busyCell(X,Y2,T,_,_),busyCell(X1,Y,T,_,_),busyCell(X2,Y,T,_,_), Y1 = Y+1, Y2 = Y-1, X1 = X+1, X2 = X-1.

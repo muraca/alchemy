@@ -13,7 +13,7 @@ class Board:
 
     def __init__(self, N: int):
         self.size = N
-        self._board = [[EmptyCell(x,y,False) for y in range(N)] for x in range(N)]
+        self._board = [[EmptyCell(x,y,0) for y in range(N)] for x in range(N)]
         self._rowCounter = [0 for i in range(N)]
         self._colCounter = [0 for i in range(N)]
 
@@ -34,10 +34,10 @@ class Board:
             y = sol.get_posy
 
             """if the new position is not already completed, points stonkssss pew pew"""
-            if self._board[x][y].get_completed == False:
+            if self._board[x][y].get_completed == 0:
                 points += 4
 
-            self._board[x][y] = BusyCell(x, y, inRune.get_typeOfRune, inRune.get_color, True)
+            self._board[x][y] = BusyCell(x, y, inRune.get_typeOfRune, inRune.get_color, 1)
 
             """counters go brrrrrr"""
             self._rowCounter[x] += 1
@@ -63,14 +63,14 @@ class Board:
         if rowToClear:
             self._rowCounter[x] = 0
             for i in range(self.size):
-                self._board[x][i] = EmptyCell(x,i,True)
+                self._board[x][i] = EmptyCell(x,i,1)
                 self._colCounter[i] -= 1 if self._colCounter[i] > 0 else 0
             points += self.size
             
         if colToClear:
             self._colCounter[y] = 0
             for i in range(self.size):
-                self._board[x][i] = EmptyCell(i,y,True)
+                self._board[x][i] = EmptyCell(i,y,1)
                 self._rowCounter[i] -= 1 if self._rowCounter[i] > 0 else 0
             points += self.size
 
@@ -133,7 +133,7 @@ class Game(Thread):
     
     def run(self) -> None:
         while self.is_alive():
-            while self._running:
+            while self._running and self.is_alive():
                 print('di')
                 with self._lock:
                     print('ocan')
@@ -195,32 +195,46 @@ class AlchemyDLVHandler:
         print('dlv')
        
         inputProgram = ASPInputProgram()
-        inputProgram.add_files_path("alchemy.dlv2")
+        # inputProgram.add_files_path("alchemy.dlv2")
+        with open("dumb") as f:
+            inputProgram.add_program(f.read())
         
-        for i in range(board.size):
-            for j in range(board.size):
+        for i in range(board.get_size()):
+            for j in range(board.get_size()):
                 inputProgram.add_object_input(board.get_element(i,j))
         
-        inputProgram.add_program("Solution(A,B)?")
+        inputProgram.add_program("sizeOfMatrix(" + str(board.get_size()) + ").")
+        inputProgram.add_program(str(inRune))
+        inputProgram.add_program("solution(A,B)?")
 
         self._handler.add_program(inputProgram)
         #self._handler.add_option("-n 1")
 
         answerSets = self._handler.start_sync()
-        self._handler.remove_all()
+
+        # f = open("test","w")
+        # f.write(inputProgram.get_programs())
+        # f.close()
 
         try:
-            for atom in answerSets.get_optimal_answer_sets()[0].get_atoms():
-                return atom
+            print(answerSets.get_answer_sets())
+            for ass in answerSets.get_optimal_answer_sets():
+                print(ass)
+                for x in ass.get_atoms():
+                    print(x)
+            #for atom in answerSets.get_optimal_answer_sets()[0].get_atoms():
+            #    return atom
         except:
+            self._handler.remove_all()
             return None
 
+        self._handler.remove_all()
         return None
 
 
 DIM = 60
 OFFSET = 50
-TICKRATE = 1
+TICKRATE = 4
 
 class AlchemyGUI:
     
@@ -297,7 +311,7 @@ class AlchemyGUI:
                     elem = self._board.get_element(i,j)
                     x = i * DIM + OFFSET
                     y = j * DIM + OFFSET
-                    comp = 0 if elem.get_completed() == False else 1
+                    comp = 0 if elem.get_completed() == 0 else 1
                     self._screen.blit(self._cell[comp], (x,y))
                     
                     if not elem.is_empty():
@@ -311,7 +325,7 @@ class AlchemyGUI:
                 self._screen.blit(self._sprites[inRune.get_typeOfRune()][inRune.get_color()], (self._len / 2 - DIM/2, 0))
 
         else:
-            self._screen.blit(self._render_gameover, (self._len / 2 - OFFSET, self._len/2 - OFFSET))
+            self._screen.blit(self._render_gameover(), (self._len / 2 - OFFSET, self._len/2 - OFFSET))
             self._screen.blit(self._render_points(), (self._len / 2 - OFFSET, self._len/2))
             self._screen.blit(self._render_newgame(), (self._len / 2 - OFFSET, self._len/2 + OFFSET))
         
@@ -320,20 +334,20 @@ class AlchemyGUI:
     def event_handler(self) -> None:
         """handling debugging stuff"""
         for event in pg.event.get():
-            if event.type == pg.QUIT:
+            if event.type == pg.constants.QUIT:
                 pg.quit()
                 exit()
-            elif event.type == pg.KEYDOWN:
-                if event.key == pg.K_n:
+            elif event.type == pg.constants.KEYDOWN:
+                if event.key == pg.constants.K_n:
                     #killa game attuale
                     #chiedi difficoltà
                     diff = 1
-                    self.set_game(Game(self, diff))
+                    self.set_game(Game(diff))
                 elif not self._game.is_alive():
                     continue
-                elif event.key == pg.K_SPACE:
+                elif event.key == pg.constants.K_SPACE:
                     self._game.flip_running()
-                elif event.key == pg.K_ENTER and not self._game.is_running():
+                elif event.key == pg.constants.K_RETURN and not self._game.is_running():
                     self._game.step()
 
 if __name__ == '__main__':

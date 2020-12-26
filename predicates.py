@@ -63,7 +63,7 @@ class BusyCell(Predicate):
         self.color = color
 
     def set_completed(self, completed):
-        self.completed = completed
+        self.completed = str(completed).lower()
 
     def is_empty(self):
         return False
