@@ -35,10 +35,10 @@ canBePlaced(X,Y) | cannotBePlaced(X,Y) :- emptyCell(X,Y,Comp).
 :- canBePlaced(X,Y), inputRune(T,C), busyCell(X1,Y1,T1,C1,Co1), T != T1, C != C1, Y = Y1-1, T != 0, T1 != 0.
 
 %blank rune can be placed in any spot
-canBePlaced(X,Y) :- emptyCell(X,Y,_), inputRune(0,_).
+canBePlaced(X,Y) :- emptyCell(X,Y,Comp), inputRune(0,0).
 
 %blank rune should be placed in a crowded situation
-:~ solution(X,Y), inputRune(0,0), surroundingCells(X,Y,W), surroundingBusyCells(X,Y,Z). [W-Z@3]
+%:~ solution(X,Y), inputRune(0,0), surroundingCells(X,Y,W), surroundingBusyCells(X,Y,Z). [W-Z@2]
 
 surroundingCells(X,Y,4) :- canBePlaced(X,Y), sizeOfMatrix(S), X > 0, X < S, Y > 0, Y < S.
 surroundingCells(X,Y,3) :- canBePlaced(X,Y), sizeOfMatrix(S), X = 0, Y > 0, Y < S.
@@ -53,7 +53,7 @@ surroundingCells(X,Y,2) :- canBePlaced(X,Y), sizeOfMatrix(S), X = S, Y = 0.
 %there should be 0 or 1 solutions, 1 is preferred
 solution(X,Y) | notSolution(X,Y) :- canBePlaced(X,Y).
 :- #count{X,Y : solution(X,Y)} > 1.
-:~ #count{X,Y : solution(X,Y)} = 0. [1@2]
+:~ #count{X,Y : solution(X,Y)} = 0. [1@3]
 %an incomplete cell is preferred, but not necessary
 :~ solution(X,Y), emptyCell(X,Y,1). [1@1]
 

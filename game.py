@@ -13,7 +13,7 @@ class Board:
 
     def __init__(self, N: int):
         self.size = N
-        self._board = [[EmptyCell(x,y,0) for y in range(N)] for x in range(N)]
+        self._board = [[EmptyCell(x,y,'0') for y in range(N)] for x in range(N)]
         self._rowCounter = [0 for i in range(N)]
         self._colCounter = [0 for i in range(N)]
 
@@ -30,14 +30,18 @@ class Board:
         if sol != None:
             points = 1
 
-            x = sol.get_posx
-            y = sol.get_posy
+            x = int(sol.get_posx())
+            y = int(sol.get_posy())
 
             """if the new position is not already completed, points stonkssss pew pew"""
-            if self._board[x][y].get_completed == 0:
+            if self._board[x][y].get_completed() == '0':
                 points += 4
 
-            self._board[x][y] = BusyCell(x, y, inRune.get_typeOfRune, inRune.get_color, 1)
+            print(self._board[x][y])
+
+            self._board[x][y] = BusyCell(x, y, inRune.get_typeOfRune(), inRune.get_color(), 1)
+
+            print(self._board[x][y])
 
             """counters go brrrrrr"""
             self._rowCounter[x] += 1
@@ -48,8 +52,8 @@ class Board:
     def compute_board(self, sol: Solution) -> int:
         points = 0
 
-        x = sol.get_posx
-        y = sol.get_posy
+        x = int(sol.get_posx())
+        y = int(sol.get_posy())
 
         rowToClear = False
         colToClear = False
@@ -134,9 +138,7 @@ class Game(Thread):
     def run(self) -> None:
         while self.is_alive():
             while self._running and self.is_alive():
-                print('di')
                 with self._lock:
-                    print('ocan')
                     self._proceed()
             with self._lock:
                 if self._step:
@@ -148,7 +150,6 @@ class Game(Thread):
                 self._proceed()
 
     def _proceed(self) -> None:
-        print('game')
         #get a random rune inRune
         self._inRune = InputRune(randint(1, self._limit), randint(1, self._limit)) if not self._board.is_clear() else InputRune(0,0)
 
@@ -196,16 +197,23 @@ class AlchemyDLVHandler:
        
         inputProgram = ASPInputProgram()
         # inputProgram.add_files_path("alchemy.dlv2")
-        with open("dumb") as f:
+        with open("alchemy.dlv2") as f:
             inputProgram.add_program(f.read())
+
+        f.close()
         
-        for i in range(board.get_size()):
-            for j in range(board.get_size()):
+        size = board.get_size()
+
+        for i in range(size):
+            for j in range(size):
                 inputProgram.add_object_input(board.get_element(i,j))
         
-        inputProgram.add_program("sizeOfMatrix(" + str(board.get_size()) + ").")
-        inputProgram.add_program(str(inRune))
-        inputProgram.add_program("solution(A,B)?")
+        print(str(size))
+
+        #inputProgram.add_program("sizeOfMatrix(" + str(size) + ").")
+        inputProgram.add_object_input(SizeOfMatrix(size))
+        inputProgram.add_object_input(inRune)
+        #inputProgram.add_program("solution(A,B)?")
 
         self._handler.add_program(inputProgram)
         #self._handler.add_option("-n 1")
@@ -217,18 +225,17 @@ class AlchemyDLVHandler:
         # f.close()
 
         try:
-            print(answerSets.get_answer_sets())
-            for ass in answerSets.get_optimal_answer_sets():
-                print(ass)
-                for x in ass.get_atoms():
-                    print(x)
-            #for atom in answerSets.get_optimal_answer_sets()[0].get_atoms():
-            #    return atom
+            #for ass in answerSets.get_optimal_answer_sets():
+            for atom in answerSets.get_optimal_answer_sets()[0].get_atoms():
+                if isinstance(atom, Solution):
+                    print(atom)
+                    return atom
         except:
-            self._handler.remove_all()
+            print('xc')
             return None
 
         self._handler.remove_all()
+        print('none')
         return None
 
 
@@ -311,7 +318,7 @@ class AlchemyGUI:
                     elem = self._board.get_element(i,j)
                     x = i * DIM + OFFSET
                     y = j * DIM + OFFSET
-                    comp = 0 if elem.get_completed() == 0 else 1
+                    comp = 0 if elem.get_completed() == '0' else 1
                     self._screen.blit(self._cell[comp], (x,y))
                     
                     if not elem.is_empty():
