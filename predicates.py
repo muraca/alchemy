@@ -39,7 +39,7 @@ class BusyCell(Predicate):
         return self.posx
 
     def get_posy(self):
-        return self.posx
+        return self.posy
 
     def get_typeOfRune(self):
         return self.typeOfRune
@@ -135,7 +135,7 @@ class Solution(Predicate):
         return self.posx
 
     def get_posy(self):
-        return self.posx
+        return self.posy
 
     def set_posx(self, posx):
         self.posx = posx

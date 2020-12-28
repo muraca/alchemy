@@ -1,6 +1,6 @@
 import pygame as pg
 from predicates import * 
-from random import randint
+from random import randint, random
 from platforms.desktop.desktop_handler import DesktopHandler
 from specializations.dlv2.desktop.dlv2_desktop_service import DLV2DesktopService
 from languages.asp.asp_mapper import ASPMapper
@@ -13,9 +13,10 @@ class Board:
 
     def __init__(self, N: int):
         self.size = N
-        self._board = [[EmptyCell(x,y,'0') for y in range(N)] for x in range(N)]
+        self._board = [[EmptyCell(x,y,0) for y in range(N)] for x in range(N)]
         self._rowCounter = [0 for i in range(N)]
         self._colCounter = [0 for i in range(N)]
+        self._completed_counter = self.size*self.size
 
     def get_element(self, x: int, y: int) -> 'Predicate':
         return self._board[x][y]
@@ -34,14 +35,11 @@ class Board:
             y = int(sol.get_posy())
 
             """if the new position is not already completed, points stonkssss pew pew"""
-            if self._board[x][y].get_completed() == '0':
+            if self._board[x][y].get_completed() == 0:
                 points += 4
-
-            print(self._board[x][y])
+                self._completed_counter -= 1
 
             self._board[x][y] = BusyCell(x, y, inRune.get_typeOfRune(), inRune.get_color(), 1)
-
-            print(self._board[x][y])
 
             """counters go brrrrrr"""
             self._rowCounter[x] += 1
@@ -74,16 +72,9 @@ class Board:
         if colToClear:
             self._colCounter[y] = 0
             for i in range(self.size):
-                self._board[x][i] = EmptyCell(i,y,1)
+                self._board[i][y] = EmptyCell(i,y,1)
                 self._rowCounter[i] -= 1 if self._rowCounter[i] > 0 else 0
             points += self.size
-
-        """if it didn't clear both row and column, it has to diminish the other one"""
-        if rowToClear and not colToClear:
-            self._colCounter[y] -= 1
-
-        if not rowToClear and colToClear:
-            self._rowCounter[x] -= 1
 
         return points        
 
@@ -93,6 +84,9 @@ class Board:
                 return False
         
         return True
+    
+    def end(self) -> bool:
+        return self._completed_counter == 0
 
 class Game(Thread):
     """Central class for handling most of the game logic"""
@@ -140,18 +134,18 @@ class Game(Thread):
             while self._running and self.is_alive():
                 with self._lock:
                     self._proceed()
+                self._sleep()
             with self._lock:
                 if self._step:
                     self._step = False
                     self._proceed()
 
-        while(self._running and self._lives > 0):
-            with self._lock:
-                self._proceed()
-
     def _proceed(self) -> None:
         #get a random rune inRune
-        self._inRune = InputRune(randint(1, self._limit), randint(1, self._limit)) if not self._board.is_clear() else InputRune(0,0)
+        if random() < 0.1:
+            self._inRune = InputRune(0,0)
+        else:
+            self._inRune = InputRune(randint(1, self._limit), randint(1, self._limit)) if not self._board.is_clear() else InputRune(0,0)
 
         self._sleep()
         sol = self._dlvhandler.get_solution(self._inRune, self._board)
@@ -161,18 +155,25 @@ class Game(Thread):
             self._sleep()
             self._lives -= 1 
             self._inRune = None
-            self._sleep()
+            #self._sleep()
         else:
             self._points += self._board.add_rune(self._inRune, sol)
             self._inRune = None
             #display the board with the added rune
             self._sleep()
             self._points += self._board.compute_board(sol)
+            self._lives = min(self._lives + 1, 4)
+            
             #display the board with the changes implied by the added rune (points and removals)
-            self._sleep()
+            #self._sleep()
+
+            if self._board.end(): #TODO gamemode endless // complete board
+                self._lives = 0
+
 
     def _sleep(self):
         sleep(0.5)
+        pass
 
 
 
@@ -191,50 +192,46 @@ class AlchemyDLVHandler:
         ASPMapper.get_instance().register_class(EmptyCell)
         ASPMapper.get_instance().register_class(SizeOfMatrix)
         ASPMapper.get_instance().register_class(Solution)
+        self.inputProgram = ASPInputProgram()
+        self.inputProgram.add_files_path("alchemy.dlv2")
+        self.countlogs = 0
+
+    def log_program(self):
+        with open("logs/alchemy-{}.log".format(self.countlogs),"w") as f:
+            f.write(self.inputProgram.get_programs())
+        self.countlogs+=1
+
 
     def get_solution(self, inRune: InputRune, board: Board) -> 'Solution':
-        print('dlv')
-       
-        inputProgram = ASPInputProgram()
-        # inputProgram.add_files_path("alchemy.dlv2")
-        with open("alchemy.dlv2") as f:
-            inputProgram.add_program(f.read())
-
-        f.close()
-        
         size = board.get_size()
-
         for i in range(size):
             for j in range(size):
-                inputProgram.add_object_input(board.get_element(i,j))
+                self.inputProgram.add_object_input(board.get_element(i,j))
         
-        print(str(size))
-
-        #inputProgram.add_program("sizeOfMatrix(" + str(size) + ").")
-        inputProgram.add_object_input(SizeOfMatrix(size))
-        inputProgram.add_object_input(inRune)
+        self.inputProgram.add_object_input(SizeOfMatrix(size))
+        self.inputProgram.add_object_input(inRune)
         #inputProgram.add_program("solution(A,B)?")
 
-        self._handler.add_program(inputProgram)
+        self._handler.add_program(self.inputProgram)
         #self._handler.add_option("-n 1")
 
         answerSets = self._handler.start_sync()
 
-        # f = open("test","w")
-        # f.write(inputProgram.get_programs())
-        # f.close()
+        self._handler.remove_all()
+        # self.log_program()
+        self.inputProgram.clear_programs()
+
 
         try:
-            #for ass in answerSets.get_optimal_answer_sets():
-            for atom in answerSets.get_optimal_answer_sets()[0].get_atoms():
-                if isinstance(atom, Solution):
-                    print(atom)
-                    return atom
+            for ass in answerSets.get_optimal_answer_sets():
+                for atom in ass.get_atoms():
+                    if isinstance(atom, Solution):
+                        print(atom)
+                        return atom
         except:
             print('xc')
             return None
 
-        self._handler.remove_all()
         print('none')
         return None
 
@@ -285,20 +282,11 @@ class AlchemyGUI:
 
     def _load_tile(self,imagename) -> 'Surface':
         return pg.transform.scale(pg.image.load(imagename), (DIM,DIM))
-#TODO metodo unico
-    def _render_points(self) -> 'Surface':
-        return self._ourfont_small.render("Points {}".format(self._game.get_points()),True,(0,0,0))
 
-    def _render_lives(self) -> 'Surface':
-        return self._ourfont_small.render("Lives {}".format(self._game.get_lives()),True,(0,0,0))
-
-    def _render_gameover(self) -> 'Surface':
-        return self._ourfont_large.render("Game Over!",True,(0,0,0))
-
-    def _render_newgame(self) -> 'Surface':
-        return self._ourfont_small.render("press N to play again",True,(0,0,0))
-
-    #def _render_text(self, text, color, isLarge=False):
+    def _render_text(self, text: str, isLarge=False, color=(0,0,0)) -> 'Surface':
+        if isLarge:
+            return self._ourfont_large.render(text,True,(0,0,0))
+        return self._ourfont_small.render(text,True,(0,0,0))
 
     def run(self):
         while True:
@@ -313,28 +301,28 @@ class AlchemyGUI:
         self._screen.blit(self._background, (0,0))
 
         if self._game.is_alive():
-            for i in range(self._board.size):
-                for j in range(self._board.size):
+            for i in range(self._board.get_size()):
+                for j in range(self._board.get_size()):
                     elem = self._board.get_element(i,j)
-                    x = i * DIM + OFFSET
-                    y = j * DIM + OFFSET
-                    comp = 0 if elem.get_completed() == '0' else 1
+                    y = i * DIM + OFFSET
+                    x = j * DIM + OFFSET
+                    comp = 0 if elem.get_completed() == 0 else 1
                     self._screen.blit(self._cell[comp], (x,y))
                     
                     if not elem.is_empty():
                         self._screen.blit(self._sprites[elem.get_typeOfRune()][elem.get_color()], (x,y))
         
-            self._screen.blit(self._render_points(), (0,0))
-            self._screen.blit(self._render_lives(), (self._len - OFFSET,0))
+            self._screen.blit(self._render_text("{} points".format(self._game.get_points())), (0,0))
+            self._screen.blit(self._render_text("{} lives".format(self._game.get_lives())), (self._len - OFFSET,0))
 
             inRune = self._game.get_inRune()
             if inRune != None:
                 self._screen.blit(self._sprites[inRune.get_typeOfRune()][inRune.get_color()], (self._len / 2 - DIM/2, 0))
 
         else:
-            self._screen.blit(self._render_gameover(), (self._len / 2 - OFFSET, self._len/2 - OFFSET))
-            self._screen.blit(self._render_points(), (self._len / 2 - OFFSET, self._len/2))
-            self._screen.blit(self._render_newgame(), (self._len / 2 - OFFSET, self._len/2 + OFFSET))
+            self._screen.blit(self._render_text("Game Over!", True), (self._len / 2 - OFFSET, self._len/2 - OFFSET))
+            self._screen.blit(self._render_text("{} points".format(self._game.get_points())), (self._len / 2 - OFFSET, self._len/2))
+            self._screen.blit(self._render_text("press N to play again"), (self._len / 2 - OFFSET, self._len/2 + OFFSET))
         
         pg.display.flip()
 
