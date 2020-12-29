@@ -47,7 +47,8 @@ isEmpty(1) :- #count{X1, Y1: emptyCell(X1,Y1,_)} = M, M = S*S, sizeOfMatrix(S).
 solution(X,Y) | notSolution(X,Y) :- emptyCell(X,Y,0), isEmpty(1).
 
 %if the board is empty, try to put the cell as centred as possible
-:~ isEmpty(1), solution(X,Y), sizeOfMatrix(S), S/2 = M, #absdiff{X,M,PX}, #absdiff{Y,M,PY}. [PX+PY@4]
+:~ isEmpty(1), solution(X,Y), sizeOfMatrix(S), M=S/2, PX=X-M, PY=Y-M. [PX+PY@4]
+%:~ isEmpty(1), solution(X,Y), sizeOfMatrix(S), M=S/2. [M@4]
 
 %there should be 0 or 1 solutions, 1 is preferred
 :- #count{X,Y : solution(X,Y)} > 1.
@@ -57,7 +58,7 @@ solution(X,Y) | notSolution(X,Y) :- emptyCell(X,Y,0), isEmpty(1).
 :~ solution(X,Y), #count{X2,Y2: neighbors(X,Y,X2,Y2), busyCell(X2,Y2,_,_,_)} = B. [4-B@2]
 
 %an incomplete cell is preferred, but not necessary
-:~ solution(X,Y), emptyCell(X,Y,1). [1@3]
+:~ solution(X,Y), emptyCell(X,Y,1). [1@6]
 
 %prefer not to place next to a blank rune
 :~ solution(X,Y), neighbors(X,Y,X1,Y1), busyCell(X1,Y1,0,_,_). [1@5]
