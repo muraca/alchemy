@@ -46,13 +46,12 @@ isEmpty(1) :- #count{X1, Y1: emptyCell(X1,Y1,_)} = M, M = S*S, sizeOfMatrix(S).
 %guess for the limit case in which the matrix is all empty cells
 solution(X,Y) | notSolution(X,Y) :- emptyCell(X,Y,0), isEmpty(1).
 
+%if the board is empty, try to put the cell as centred as possible
+:~ isEmpty(1), solution(X,Y), sizeOfMatrix(S), S/2 = M, #absdiff{X,M,PX}, #absdiff{Y,M,PY}. [PX+PY@4]
+
 %there should be 0 or 1 solutions, 1 is preferred
 :- #count{X,Y : solution(X,Y)} > 1.
 :~ #count{X,Y : solution(X,Y)} = 0. [1@10]
-
-%
-% :~ solution(X,Y), #count
-%
 
 %it is preferred to place the inputRune in a crowded situation
 :~ solution(X,Y), #count{X2,Y2: neighbors(X,Y,X2,Y2), busyCell(X2,Y2,_,_,_)} = B. [4-B@2]
@@ -62,8 +61,8 @@ solution(X,Y) | notSolution(X,Y) :- emptyCell(X,Y,0), isEmpty(1).
 
 %prefer not to place next to a blank rune
 :~ solution(X,Y), neighbors(X,Y,X1,Y1), busyCell(X1,Y1,0,_,_). [1@5]
+:~ solution(X,Y), neighbors(X,Y,X1,Y1), busyCell(X1,Y1,0,_,_), inputRune(0,_). [10@5]
 
-%TODO handle blank rune insertion next blank rune
 crowded(X,Y,Comp,TX,CX) :- #count{T: neighbors(X,Y,X1,Y1), busyCell(X1,Y1,T,_,_), T != 0} = TX, #count{C: neighbors(X,Y,X2,Y2), busyCell(X2,Y2,_,C,_), C != 0} = CX, emptyCell(X,Y,Comp).
 
-:~ solution(X,Y), crowded(X,Y,Comp,TX,CX), inputRune(0,_). [9-TX-CX-Comp@4]
+:~ solution(X,Y), crowded(X,Y,Comp,TX,CX), inputRune(0,_), not isEmpty(1). [9-TX-CX-Comp@4]

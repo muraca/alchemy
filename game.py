@@ -155,7 +155,6 @@ class Game(Thread):
             self._sleep()
             self._lives -= 1 
             self._inRune = None
-            #self._sleep()
         else:
             self._points += self._board.add_rune(self._inRune, sol)
             self._inRune = None
@@ -163,9 +162,7 @@ class Game(Thread):
             self._sleep()
             self._points += self._board.compute_board(sol)
             self._lives = min(self._lives + 1, 4)
-            
             #display the board with the changes implied by the added rune (points and removals)
-            #self._sleep()
 
             if self._board.end(): #TODO gamemode endless // complete board
                 self._lives = 0
@@ -210,15 +207,13 @@ class AlchemyDLVHandler:
         
         self.inputProgram.add_object_input(SizeOfMatrix(size))
         self.inputProgram.add_object_input(inRune)
-        #inputProgram.add_program("solution(A,B)?")
 
         self._handler.add_program(self.inputProgram)
-        #self._handler.add_option("-n 1")
 
         answerSets = self._handler.start_sync()
 
         self._handler.remove_all()
-        # self.log_program()
+        self.log_program()
         self.inputProgram.clear_programs()
 
 
@@ -318,11 +313,14 @@ class AlchemyGUI:
             inRune = self._game.get_inRune()
             if inRune != None:
                 self._screen.blit(self._sprites[inRune.get_typeOfRune()][inRune.get_color()], (self._len / 2 - DIM/2, 0))
-
+        elif self._board.end():
+            self._text = "You win!"
         else:
-            self._screen.blit(self._render_text("Game Over!", True), (self._len / 2 - OFFSET, self._len/2 - OFFSET))
-            self._screen.blit(self._render_text("{} points".format(self._game.get_points())), (self._len / 2 - OFFSET, self._len/2))
-            self._screen.blit(self._render_text("press N to play again"), (self._len / 2 - OFFSET, self._len/2 + OFFSET))
+            self._text = "Game Over!"
+        
+        self._screen.blit(self._render_text(self._text, True), (self._len / 2 - OFFSET, self._len/2 - OFFSET))
+        self._screen.blit(self._render_text("{} points".format(self._game.get_points())), (self._len / 2 - OFFSET, self._len/2))
+        self._screen.blit(self._render_text("press N to play again"), (self._len / 2 - OFFSET, self._len/2 + OFFSET))
         
         pg.display.flip()
 
