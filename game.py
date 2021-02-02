@@ -7,7 +7,38 @@ from languages.asp.asp_mapper import ASPMapper
 from languages.asp.asp_input_program import ASPInputProgram
 import os
 from time import sleep
-from threading import Thread, Lock, Condition
+from threading import Thread, RLock, Condition
+
+
+class UrgentLock:
+    def __init__(self):
+        self._lock = RLock()
+        self._condition = Condition(self._lock)
+        self._urgent = False
+        self._locked = False
+    
+    def acquire(self):
+        with self._lock:
+            while self._urgent or self._locked:
+                self._condition.wait()
+            self._locked = True
+    
+    def urgent_acquire(self):
+        with self._lock:
+            self._urgent = True
+            while self._locked:
+                self._condition.wait()
+            self._locked = True
+    
+    def release(self):
+        with self._lock:
+            self._locked = False
+            self._condition.notify_all()
+
+    def urgent_release(self):
+        with self._lock:
+            self._urgent = False
+            self.release()
 
 class Board:
 
@@ -101,7 +132,7 @@ class Game(Thread):
         self._lives = 3
         self._dlvhandler = AlchemyDLVHandler()
         self._inRune = None
-        self._lock = Lock()
+        self._lock = UrgentLock()
         self._step = False
 
     def get_points(self) -> int:
@@ -120,8 +151,9 @@ class Game(Thread):
         return self._running
 
     def flip_running(self) -> None:
-        with self._lock:
-            self._running = not self._running
+        self._lock.urgent_acquire()
+        self._running = not self._running
+        self._lock.urgent_release()
 
     def is_alive(self) -> bool:
         return self._lives > 0
@@ -131,14 +163,14 @@ class Game(Thread):
     
     def run(self) -> None:
         while self.is_alive():
-            while self._running and self.is_alive():
-                with self._lock:
-                    self._proceed()
+            self._lock.acquire()
+            if self._running:
+                self._proceed()
                 self._sleep()
-            with self._lock:
-                if self._step:
-                    self._step = False
-                    self._proceed()
+            if self._step:
+                self._step = False
+                self._proceed()
+            self._lock.release()
 
     def _proceed(self) -> None:
         #get a random rune inRune
@@ -251,7 +283,7 @@ class AlchemyGUI:
         self._board = self._game.get_board()
         self._len = self._board.get_size() * DIM + OFFSET * 2
         self._screen = pg.display.set_mode((self._len,self._len))
-        pg.display.set_caption("Poor men's Alchemy")
+        pg.display.set_caption("Poor man's Alchemy")
         self._game.start()
 
     def _load_sprites(self) -> None:
@@ -347,5 +379,5 @@ class AlchemyGUI:
 
 if __name__ == '__main__':
     a = AlchemyGUI()
-    a.set_game(Game(1))
+    a.set_game(Game(3))
     a.run()

@@ -2,3 +2,9 @@
 /artworks/.DS_Store
 /artworks/projects
 /__pycache__
+.vscode
+dumb
+logs
+provaneigh
+scemo
+test*
