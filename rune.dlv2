@@ -1,0 +1,168 @@
+% ----- RUNE -----
+
+%%% TODO %%%%
+% Complete row and col constraint
+% to avoid loosing like an idiot
+%%%%%%%%%%%%%
+
+canBePlaced(X,Y) :-
+    emptyCell(X,Y,_),
+    inputRune(T,C),
+    #count{X1,Y1: neighbors(X,Y,X1,Y1), busyCell(X1,Y1,_,_,_)} != 0,
+    #count{X1,Y1: neighbors(X,Y,X1,Y1), busyCell(X1,Y1,T1,C1,_), T != T1, T1 != 0, C != C1} = 0.
+
+% if a neighbor is an emptyCell
+% pay if the solution increments the number of neighbor types or colors
+
+:~  solution(X,Y),
+    inputRune(T,C),
+    neighbors(X,Y,X1,Y1),
+    emptyCellProperties(X1,Y1,N,_,T1,C1,_),
+    #count{X2,Y2: neighbors(X1,Y1,X2,Y2), busyCell(X2,Y2,T,_,_)} = 0. [T1@8,X1,Y1,1]
+
+:~  solution(X,Y),
+    inputRune(T,C),
+    neighbors(X,Y,X1,Y1),
+    emptyCellProperties(X1,Y1,N,_,T1,C1,_),
+    #count{X2,Y2: neighbors(X1,Y1,X2,Y2), busyCell(X2,Y2,_,C,_)} = 0. [C1@8,X1,Y1,2]
+
+
+% pay if the solution does not complete
+% a row or column that can be completed
+
+:~  solution(X,Y),
+    row(X1,N),
+    sizeOfMatrix(S),
+    N = S - 1,
+    X1 != X,
+    canBePlaced(X1,_). [1@2,X1,1]
+
+:~  solution(X,Y),
+    col(Y1,N),
+    sizeOfMatrix(S),
+    N = S - 1,
+    Y1 != Y,
+    canBePlaced(_,Y1). [1@2,Y1,2]
+
+% if it can be placed next to two neighbor cells
+% with the same rune type
+% and one of them has the same color
+% place it next to the different color one
+% in a neighbor cell of a neighbor of the same color one
+
+:~  solution(X,Y),
+    inputRune(T,C),
+    neighbors(X,Y,X1,Y1),
+    busyCell(X1,Y1,T,C,_),
+    neighbors(X1,Y1,X2,Y2),
+    busyCell(X2,Y2,T,C1,_), C1 != C,
+    canBePlaced(X3,Y3),
+    neighbor(X,Y,X3,Y3),
+    neighbor(X2,Y2,X3,Y3). [1@6,X3,Y3]
+
+% if it can be placed next to two neighbor cells
+% with the same color
+% and one of them has the same type
+% place it next to the different type one
+% in a neighbor cell of a neighbor of the same color one
+
+:~  solution(X,Y),
+    inputRune(T,C),
+    neighbors(X,Y,X1,Y1),
+    busyCell(X1,Y1,T,C,_),
+    neighbors(X1,Y1,X2,Y2),
+    busyCell(X2,Y2,T1,C,_), T1 != T,
+    canBePlaced(X3,Y3),
+    neighbor(X,Y,X3,Y3),
+    neighbor(X2,Y2,X3,Y3). [1@5,X3,Y3]
+
+% prefer not to place next to a blank rune
+:~  solution(X,Y),
+    neighbors(X,Y,X1,Y1),
+    busyCell(X1,Y1,0,_,_). [1@3, X1,Y1]
+
+% prefer to place in crowded places 
+:~  solution(X,Y),
+    neighbors(X,Y,X1,Y1),
+    emptyCell(X1,Y1,_). [1@9,X1,Y1]
+
+% prefer to place near the same color instead of the same type
+:~  solution(X,Y),
+    inputRune(T,C),
+    neighbors(X,Y,X1,Y1),
+    busyCell(X1,Y1,T,C1,_),
+    C1 != C. [1@10]
+    
+% prefer to place in the row/column most near to completeness
+:~  solution(X,Y),
+    row(X,Nx),
+    col(Y,Ny),
+    sizeOfMatrix(S),
+    Pay = (2 * S) - Nx - Ny. [Pay@1]
+
+% IF CAN BE PLACED LEFT/RIGHT OR UP/DOWN AND CHANGE COLOR, GO CLOSEST TO WALL
+% IF NOT CHANGE COLOR, GO FURTHEST
+
+% if lives full and you can only place on a completed cell,
+% incrementing the color of the neighbors of the only neighbor, prefer to kill
+%%%% MAYBE? Generalization, make a function to determine priority level instead of weight %%%%
+:-  solution(X,Y),
+    lifePoints(4),
+    inputRune(T,C),
+    neighbors(X,Y,X1,Y1),
+    emptyCell(X,Y,1),
+    emptyCellProperties(X1,Y1,N,_,T1,C1,_),
+    #count{X2,Y2: neighbors(X1,Y1,X2,Y2), busyCell(X2,Y2,T,_,_)} = 0.
+
+:-  solution(X,Y),
+    lifePoints(4),
+    inputRune(T,C),
+    neighbors(X,Y,X1,Y1),
+    emptyCell(X,Y,1),
+    emptyCellProperties(X1,Y1,N,1,T1,C1,_),
+    #count{X2,Y2: neighbors(X1,Y1,X2,Y2), busyCell(X2,Y2,_,C,_)} = 0.
+
+
+% if there is a path of two canBePlaced between
+% a rune with the same type of input
+% and a rune of the same color of input (not necessarily different type)
+% which are not neighbors
+% place next to the rune of the different color
+
+:~  busyCell(X1,Y1,T,C1,_),
+    busyCell(X2,Y2,T2,C,_),
+    inputRune(T,C),
+    C != C1,
+    canBePlaced(XA,YA),
+    canBePlaced(XB,YB),
+    neighbors(X1,Y1,XA,YA),
+    neighbors(XA,YA,XB,YB),
+    neighbors(XB,YB,X2,Y2),
+    not neighbors(X1,Y2,X2,Y2),
+    not solution(XA,YA). [1@7,XA,YA]
+
+% maybe discard rune if you have at least 3 lives,
+% there are no runes of the same color of the inputRune
+% and the solution does not complete any row or column
+
+:~  lifePoints(P), P >= 3,
+    sizeOfMatrix(S),
+    #count{C1: busyCell(_,_,_,C1,_)} = Colors,
+    Colors > 2,
+    inputRune(_,C),
+    #count{X,Y: busyCell(X,Y,_,C,_)} = 0,
+    solution(XS,YS),
+    row(XS,NR), NR != S - 1,
+    col(YS,NC), NC != S - 1. [Colors@Colors+8]
+
+% aa
+
+:~  lifePoints(P), P >= 3,
+    sizeOfMatrix(S),
+    #count{T1: busyCell(_,_,T1,_,_)} = Types,
+    Types > 2,
+    inputRune(T,_),
+    #count{X,Y: busyCell(X,Y,T,_,_)} = 0,
+    solution(XS,YS),
+    row(XS,NR), NR != S - 1,
+    col(YS,NC), NC != S - 1. [Types@Types+6]

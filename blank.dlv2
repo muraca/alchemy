@@ -1,0 +1,33 @@
+% ----- BLANK -----
+
+canBePlaced(X,Y) :- 
+    isEmpty,
+    emptyCell(X,Y,_).
+
+canBePlaced(X,Y) :-
+    emptyCell(X,Y,_), 
+    neighbors(X,Y,X1,Y1),
+    busyCell(X1,Y1,_,_,_).
+
+isEmpty :- 
+    #count{X,Y: busyCell(X,Y,_,_,_)} = 0.
+
+% if the board is empty, try to put the cell as centred as possible
+:~  isEmpty,
+    solution(X,Y),
+    sizeOfMatrix(S),
+    M=S/2, &abs(X-M;PX), &abs(Y-M;PY). [PX+PY@2]
+
+% place where Types AND Colors highest
+:~  not isEmpty,
+    solution(X,Y),
+    emptyCellProperties(X,Y,Neighbors,Completeness,Types,Colors,Empty),
+    Pay = Completeness + 8 - Types - Colors. [Pay@9]
+
+
+    %Paga di più se hai vicini vuoti
+    %Paghi Completeness se hai n vicini n tipi n colori diversi -> Pay = Completeness + 8 - T - C
+
+
+:-  #count{X,Y: solution(X,Y)} = 0.
+

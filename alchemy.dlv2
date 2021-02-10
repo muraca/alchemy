@@ -18,7 +18,9 @@
 
 %there is a special type of rune, the blank:
 %it may be placed next to any rune, and can not be sacrificed.
-%by default, the central spot is occupied by the central rune.
+%if the board is empty, the game gives the player a blank rune
+
+%moreover, there is a skull bomb rune, which can remove any rune
 
 %busyCell(X,Y,T,Col,Comp).
 %emptyCell(X,Y,Comp).
@@ -35,27 +37,29 @@ neighbors(X,Y,X1,Y) :- X1 = X + 1, n(X), n(X1), n(Y).
 neighbors(X,Y,X1,Y1) :- neighbors(X1,Y1,X,Y).
 
 %A rune can be placed only in an empty cell adjacent to a busycell
-solution(X,Y) | notSolution(X,Y) :- emptyCell(X,Y,_), neighbors(X,Y,X1,Y1), busyCell(X1,Y1,_,_,_), inputRune(T,C).
+solution(X,Y) | notSolution(X,Y) :- emptyCell(X,Y,_), neighbors(X,Y,X1,Y1), busyCell(X1,Y1,_,_,_), inputRune(T,C), T != -1.
 
 %a rune can be placed only adjacent to a rune with the same type or color
-:- solution(X,Y), inputRune(T,C), neighbors(X,Y,X1,Y1), busyCell(X1,Y1,T1,C1,_), T != T1, C != C1, T!= 0, T1 != 0.
+:- solution(X,Y), inputRune(T,C), neighbors(X,Y,X1,Y1), busyCell(X1,Y1,T1,C1,_), T != T1, C != C1, T > 0, T1 > 0, not isEmpty.
 
 %is the matrix all empty cells?
-isEmpty(1) :- #count{X1, Y1: emptyCell(X1,Y1,_)} = M, M = S*S, sizeOfMatrix(S).
+isEmpty :- #count{X1, Y1: emptyCell(X1,Y1,_)} = M, M = S*S, sizeOfMatrix(S).
 
-%guess for the limit case in which the matrix is all empty cells
-solution(X,Y) | notSolution(X,Y) :- emptyCell(X,Y,0), isEmpty(1).
+%guess for the limit case in which the matrix is all empty cells (inputRune should be blank)
+solution(X,Y) | notSolution(X,Y) :- emptyCell(X,Y,_), isEmpty.
 
 %if the board is empty, try to put the cell as centred as possible
-:~ isEmpty(1), solution(X,Y), sizeOfMatrix(S), M=S/2, PX=X-M, PY=Y-M. [PX+PY@4]
-%:~ isEmpty(1), solution(X,Y), sizeOfMatrix(S), M=S/2. [M@4]
+:~ isEmpty, solution(X,Y), sizeOfMatrix(S), M=S/2, &abs(X-M;PX), &abs(Y-M;PY). [PX+PY@4]
+
+% if the board is empty, the cell can be only put in an incomplete cell, if any
+:- isEmpty, #count{X,Y: emptyCell(X,Y,0)} > 0, solution(X,Y), emptyCell(X,Y,1).
 
 %there should be 0 or 1 solutions, 1 is preferred
 :- #count{X,Y : solution(X,Y)} > 1.
-:~ #count{X,Y : solution(X,Y)} = 0. [1@10]
+:~ #count{X,Y : solution(X,Y)} = 0. [1@100]
 
 %it is preferred to place the inputRune in a crowded situation
-:~ solution(X,Y), #count{X2,Y2: neighbors(X,Y,X2,Y2), busyCell(X2,Y2,_,_,_)} = B. [4-B@2]
+:~ solution(X,Y), #count{X2,Y2: neighbors(X,Y,X2,Y2), busyCell(X2,Y2,_,_,_)} = B, inputRune(T,_), T >= 0. [4-B@2]
 
 %an incomplete cell is preferred, but not necessary
 :~ solution(X,Y), emptyCell(X,Y,1). [1@6]
@@ -64,6 +68,33 @@ solution(X,Y) | notSolution(X,Y) :- emptyCell(X,Y,0), isEmpty(1).
 :~ solution(X,Y), neighbors(X,Y,X1,Y1), busyCell(X1,Y1,0,_,_). [1@5]
 :~ solution(X,Y), neighbors(X,Y,X1,Y1), busyCell(X1,Y1,0,_,_), inputRune(0,_). [10@5]
 
-crowded(X,Y,Comp,TX,CX) :- #count{T: neighbors(X,Y,X1,Y1), busyCell(X1,Y1,T,_,_), T != 0} = TX, #count{C: neighbors(X,Y,X2,Y2), busyCell(X2,Y2,_,C,_), C != 0} = CX, emptyCell(X,Y,Comp).
+%a crowded place is a blank place where at least a neighbor is busy, counting how many different types and colors its neighbors have
+crowded(X,Y,Comp,TC,CC) :- #count{T: neighbors(X,Y,X1,Y1), busyCell(X1,Y1,T,_,_), T != 0} = TC, TC != 0, #count{C: neighbors(X,Y,X2,Y2), busyCell(X2,Y2,_,C,_), C != 0} = CC, CC != 0, emptyCell(X,Y,Comp).
 
-:~ solution(X,Y), crowded(X,Y,Comp,TX,CX), inputRune(0,_), not isEmpty(1). [9-TX-CX-Comp@4]
+%if the board is not empty, the blank rune should be put in the most differentiated crowded place possible, that is where TC and CC are the highest
+:~ solution(X,Y), crowded(X,Y,Comp,TC,CC), inputRune(0,_), not isEmpty. [9-TC-CC+Comp@4]
+
+%guess for the case in which inputRune is a skull bomb
+solution(X,Y) | notSolution(X,Y) :- inputRune(-1,_), busyCell(X,Y,_,_,_).
+
+%a crazyPlace is a busy cell next two or more crowded cells, where each one of them has at least two types and colors
+crazyPlace(X,Y,Craziness) :- busyCell(X,Y,T,_,_), T != 0, #count{Xn,Yn: neighbors(X,Y,Xn,Yn), crowded(Xn,Yn,_,Tn,Cn)} = Craziness, Craziness > 0.
+
+%if the inputRune is a skull bomb, it's better to place it in the craziest crazyPlace
+:~ solution(X,Y), inputRune(-1,_), crazyPlace(X,Y,C). [4-C@10]
+
+%prefer not to place a skull bomb over a blank rune
+:~ solution(X,Y), inputRune(-1,_), busyCell(X,Y,0,_,_). [5@10]
+
+%prefer joints near crowded spaces
+:~ solution(X,Y), decentPlace(X,Y), neighbors(X,Y,X1,Y1), crowded(X1,Y1,_,TC,CC). [8-TC-CC@10]
+%prefer a joint instead of a non joint
+:~ solution(X,Y), inputRune(-1,_), not decentPlace(X,Y), #count{C: crazyPlace(X,Y,C)} = 0. [1@11]
+
+%find all joints
+
+decentPlace(X,Y,D) :- inputRune(-1,_), busyCell(X,Y,_,_,_), #count{T: neighbor(X,Y,X1,Y1), busyCell(X1,Y1,T,_,_)} = 1, #count{C: neighbor(X,Y,X1,Y1), busyCell(X1,Y1,_,C,_)} = D.
+decentPlace(X,Y,D) :- inputRune(-1,_), busyCell(X,Y,_,_,_), #count{T: neighbor(X,Y,X1,Y1), busyCell(X1,Y1,T,_,_)} = D, #count{C: neighbor(X,Y,X1,Y1), busyCell(X1,Y1,_,C,_)} = 1.
+:~ solution(X,Y), decentPlace(X,Y,D). [4-D@9]
+:~ solution(X,Y), #count{Xd,Yd: decentPlace(Xd,Yd,_)} = 0, inputRune(-1,_). [5@10]
+%decentPlace(X,Y) :- busyCell(X,Y,_,_,_), inputRune(-1,_), #count{X1,Y1: neighbors(X,Y,X1,Y1)} = 2, #count{T: neighbors(X,Y,XN,YN), busyCell(XN,YN,T,_,_)} = 1.

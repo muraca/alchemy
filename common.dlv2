@@ -1,0 +1,34 @@
+% ----- INPUT -----
+% inputRune(Type,Color).
+% emptyCell(X,Y,Completeness).
+% busyCell(X,Y,Type,Color,Completeness).
+% sizeOfMatrix(S).
+% lifePoints(P).
+% -----------------
+
+% ----- COMMON -----
+
+zeroSolutions :- 
+    #count{X,Y: canBePlaced(X,Y)} = 0.
+
+:- zeroSolutions.
+
+solution(X,Y) | notSolution(X,Y) :- canBePlaced(X,Y).
+
+% computing all the numbers
+n(0).
+n(X) :- n(X-1), X < S, sizeOfMatrix(S).
+
+% computing all the neighbor cells
+neighbors(X,Y,X,Y1) :- Y1 = Y + 1, n(X), n(Y), n(Y1).
+neighbors(X,Y,X1,Y) :- X1 = X + 1, n(X), n(X1), n(Y).
+neighbors(X,Y,X1,Y1) :- neighbors(X1,Y1,X,Y).
+
+% row and column counters
+row(X,N) :- #count{Y: busyCell(X,Y,_,_,_)} = N, n(X).
+col(Y,N) :- #count{X: busyCell(X,Y,_,_,_)} = N, n(Y).
+
+% 0 or 1 solutions, prefer 1
+:- #count{X,Y: solution(X,Y)} > 1.
+:~ #count{X,Y: solution(X,Y)} = 0. [1@11]
+

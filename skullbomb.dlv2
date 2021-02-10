@@ -1,0 +1,3 @@
+canBePlaced(X,Y) :- 
+    inputRune(0,_),
+    busyCell(X,Y,_,_,_).

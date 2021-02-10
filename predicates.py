@@ -1,39 +1,29 @@
 from languages.predicate import Predicate
 
-class InputRune(Predicate):
-    predicate_name = 'inputRune'
-
-    def __init__(self, typeOfRune = None, color = None):
-        Predicate.__init__(self, [("typeOfRune"),("color")])
-        self.typeOfRune = typeOfRune
+class Rune:
+    def __init__(self, rune_type = None, color = None ):
+        self.rune_type = rune_type
         self.color = color
 
-    def get_typeOfRune(self):
-        return self.typeOfRune
+    def get_rune_type(self):
+        return self.rune_type
 
     def get_color(self):
         return self.color
 
-    def set_typeOfRune(self, typeOfRune):
-        self.typeOfRune = typeOfRune
+    def set_rune_type(self, rune_type):
+        self.rune_type = rune_type
 
     def set_color(self, color):
         self.color = color
 
     def __str__(self):
-        return "inputRune(" + str(self.typeOfRune) + "," + str(self.color) + ")."
+        return f"{self.rune_type},{self.color}"
 
-
-class BusyCell(Predicate):
-    predicate_name = 'busyCell'
-
-    def __init__(self, posx = None, posy = None, typeOfRune = None, color = None, completed = None):
-        Predicate.__init__(self, [("posx"),("posy"),("typeOfRune"),("color"),("completed")])
-        self.posx = posx
-        self.posy = posy
-        self.typeOfRune = typeOfRune
-        self.color = color
-        self.completed = completed
+class Position:
+    def __init__(self, x = None, y = None):
+        self.posx = x
+        self.posy = y
 
     def get_posx(self):
         return self.posx
@@ -41,69 +31,66 @@ class BusyCell(Predicate):
     def get_posy(self):
         return self.posy
 
-    def get_typeOfRune(self):
-        return self.typeOfRune
-
-    def get_color(self):
-        return self.color
-
-    def get_completed(self):
-        return self.completed
-
     def set_posx(self, posx):
         self.posx = posx
 
     def set_posy(self, posy):
         self.posy = posy
 
-    def set_typeOfRune(self, typeOfRune):
-        self.typeOfRune = typeOfRune
+    def __str__(self):
+        return f"{self.posx},{self.posy}"
 
-    def set_color(self, color):
-        self.color = color
+class Cell:
+    def __init__(self, completed = None, empty = None):
+        self.completed = completed
+        self.empty = empty
+    
+    def get_completed(self):
+        return self.completed
 
     def set_completed(self, completed):
-        self.completed = str(completed).lower()
+        self.completed = completed
+    
+    def __str__(self):
+        return str(self.completed)
 
     def is_empty(self):
-        return False
+        return self.empty
+
+class InputRune(Rune,Predicate):
+    predicate_name = 'inputRune'
+
+    def __init__(self, rune_type = None, color = None):
+        Rune.__init__(self,rune_type,color)
+        Predicate.__init__(self, [("rune_type"),("color")])
 
     def __str__(self):
-        return "busyCell(" + str(self.posx) + "," + str(self.posy) + "," + str(self.typeOfRune) + "," + str(self.color) + "," + str(self.completed) + ")."
+        return f"{self.predicate_name}({Rune.__str__(self)})"
 
 
-class EmptyCell(Predicate):
+class BusyCell(Position,Rune,Cell,Predicate):
+    predicate_name = 'busyCell'
+
+    def __init__(self, posx = None, posy = None, rune_type = None, color = None, completed = None):
+        Predicate.__init__(self, [("posx"),("posy"),("rune_type"),("color"),("completed")])
+        Position.__init__(self,posx,posy)
+        Rune.__init__(self,rune_type,color)
+        Cell.__init__(self,completed,False)
+
+    def __str__(self):
+        return f"{self.predicate_name}({Position.__str__(self)},{Rune.__str__(self)},{Cell.__str__(self)})"
+
+
+class EmptyCell(Position, Cell, Predicate):
     predicate_name = 'emptyCell'
 
     def __init__(self, posx = None, posy = None, completed = None):
         Predicate.__init__(self, [("posx"),("posy"),("completed")])
-        self.posx = posx
-        self.posy = posy
-        self.completed = completed
-
-    def get_posx(self):
-        return self.posx
-
-    def get_posy(self):
-        return self.posy
-
-    def get_completed(self):
-        return self.completed
-
-    def set_posx(self, posx):
-        self.posx = posx
-
-    def set_posy(self, posy):
-        self.posy = posy
-
-    def set_completed(self, completed):
-        self.completed = completed
-
-    def is_empty(self):
-        return True
+        Position.__init__(self,posx,posy)
+        Cell.__init__(self,completed,True)
 
     def __str__(self):
-        return "emptyCell(" + str(self.posx) + "," + str(self.posy) + "," + str(self.completed) + ")."
+        return f"{self.predicate_name}({Position.__str__(self)}, {Cell.__str__(self)})."
 
 
 class SizeOfMatrix(Predicate):
@@ -120,28 +107,29 @@ class SizeOfMatrix(Predicate):
         self.size = size
 
     def __str__(self):
-        return "sizeOfMatrix(" + str(self.size) + ")."
+        #return "%s(%d).".format(self.predicate_name,self.size)
+        return f"{self.predicate_name}({self.size})."
 
 
-class Solution(Predicate):
+class Solution(Position,Predicate):
     predicate_name = 'solution'
 
     def __init__(self, posx = None, posy = None):
         Predicate.__init__(self, [("posx"),("posy")])
-        self.posx = posx
-        self.posy = posy
-
-    def get_posx(self):
-        return self.posx
-
-    def get_posy(self):
-        return self.posy
-
-    def set_posx(self, posx):
-        self.posx = posx
-
-    def set_posy(self, posy):
-        self.posy = posy
+        Position.__init__(self,posx,posy)
 
     def __str__(self):
-        return "solution(" + str(self.posx) + "," + str(self.posy) + ")."
+        return f"{self.predicate_name}({Position.__str__(self)})."
+
+class LifePoints(Predicate):
+    predicate_name = "lifePoints"
+
+    def __init__(self,points = None):
+        self.points = points
+        Predicate.__init__(self,[("points")])
+
+    def get_points(self):
+        return self.points
+
+    def set_points(self,points = None):
+        self.points = points
