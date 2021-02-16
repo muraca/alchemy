@@ -1,10 +1,5 @@
 % ----- RUNE -----
 
-%%% TODO %%%%
-% Complete row and col constraint
-% to avoid loosing like an idiot
-%%%%%%%%%%%%%
-
 canBePlaced(X,Y) :-
     emptyCell(X,Y,_),
     inputRune(T,C),
@@ -18,13 +13,13 @@ canBePlaced(X,Y) :-
     inputRune(T,C),
     neighbors(X,Y,X1,Y1),
     emptyCellProperties(X1,Y1,N,_,T1,C1,_),
-    #count{X2,Y2: neighbors(X1,Y1,X2,Y2), busyCell(X2,Y2,T,_,_)} = 0. [T1@8,X1,Y1,1]
+    #count{X2,Y2: neighbors(X1,Y1,X2,Y2), busyCell(X2,Y2,T,_,_)} = 0. [T1@4,X1,Y1,1]
 
 :~  solution(X,Y),
     inputRune(T,C),
     neighbors(X,Y,X1,Y1),
     emptyCellProperties(X1,Y1,N,_,T1,C1,_),
-    #count{X2,Y2: neighbors(X1,Y1,X2,Y2), busyCell(X2,Y2,_,C,_)} = 0. [C1@8,X1,Y1,2]
+    #count{X2,Y2: neighbors(X1,Y1,X2,Y2), busyCell(X2,Y2,_,C,_)} = 0. [C1@7,X1,Y1,2]
 
 
 % pay if the solution does not complete
@@ -35,14 +30,14 @@ canBePlaced(X,Y) :-
     sizeOfMatrix(S),
     N = S - 1,
     X1 != X,
-    canBePlaced(X1,_). [1@2,X1,1]
+    canBePlaced(X1,_). [1@3,X1,1]
 
 :~  solution(X,Y),
     col(Y1,N),
     sizeOfMatrix(S),
     N = S - 1,
     Y1 != Y,
-    canBePlaced(_,Y1). [1@2,Y1,2]
+    canBePlaced(_,Y1). [1@3,Y1,2]
 
 % if it can be placed next to two neighbor cells
 % with the same rune type
@@ -74,24 +69,24 @@ canBePlaced(X,Y) :-
     busyCell(X2,Y2,T1,C,_), T1 != T,
     canBePlaced(X3,Y3),
     neighbor(X,Y,X3,Y3),
-    neighbor(X2,Y2,X3,Y3). [1@5,X3,Y3]
+    neighbor(X2,Y2,X3,Y3). [1@9,X3,Y3]
 
 % prefer not to place next to a blank rune
 :~  solution(X,Y),
     neighbors(X,Y,X1,Y1),
-    busyCell(X1,Y1,0,_,_). [1@3, X1,Y1]
+    busyCell(X1,Y1,0,_,_). [1@2, X1,Y1]
 
 % prefer to place in crowded places 
 :~  solution(X,Y),
     neighbors(X,Y,X1,Y1),
-    emptyCell(X1,Y1,_). [1@9,X1,Y1]
+    emptyCell(X1,Y1,_). [1@10,X1,Y1]
 
 % prefer to place near the same color instead of the same type
 :~  solution(X,Y),
     inputRune(T,C),
     neighbors(X,Y,X1,Y1),
     busyCell(X1,Y1,T,C1,_),
-    C1 != C. [1@10]
+    C1 != C. [1@5]
     
 % prefer to place in the row/column most near to completeness
 :~  solution(X,Y),
@@ -100,12 +95,8 @@ canBePlaced(X,Y) :-
     sizeOfMatrix(S),
     Pay = (2 * S) - Nx - Ny. [Pay@1]
 
-% IF CAN BE PLACED LEFT/RIGHT OR UP/DOWN AND CHANGE COLOR, GO CLOSEST TO WALL
-% IF NOT CHANGE COLOR, GO FURTHEST
-
 % if lives full and you can only place on a completed cell,
 % incrementing the color of the neighbors of the only neighbor, prefer to kill
-%%%% MAYBE? Generalization, make a function to determine priority level instead of weight %%%%
 :-  solution(X,Y),
     lifePoints(4),
     inputRune(T,C),
@@ -141,7 +132,7 @@ canBePlaced(X,Y) :-
     not neighbors(X1,Y2,X2,Y2),
     not solution(XA,YA). [1@7,XA,YA]
 
-% maybe discard rune if you have at least 3 lives,
+% discard rune if you have at least 3 lives,
 % there are no runes of the same color of the inputRune
 % and the solution does not complete any row or column
 
@@ -153,9 +144,11 @@ canBePlaced(X,Y) :-
     #count{X,Y: busyCell(X,Y,_,C,_)} = 0,
     solution(XS,YS),
     row(XS,NR), NR != S - 1,
-    col(YS,NC), NC != S - 1. [Colors@Colors+8]
+    col(YS,NC), NC != S - 1. [Colors@Colors+6]
 
-% aa
+% discard rune if you have at least 3 lives,
+% there are no runes of the same type of the inputRune
+% and the solution does not complete any row or column
 
 :~  lifePoints(P), P >= 3,
     sizeOfMatrix(S),
@@ -165,4 +158,20 @@ canBePlaced(X,Y) :-
     #count{X,Y: busyCell(X,Y,T,_,_)} = 0,
     solution(XS,YS),
     row(XS,NR), NR != S - 1,
-    col(YS,NC), NC != S - 1. [Types@Types+6]
+    col(YS,NC), NC != S - 1. [Types@Types+4]
+
+
+% If by completing you remain with fewer colors
+% do not complete because you will probably lose
+
+completing :- solution(X,Y), row(X,R), R = S-1, sizeOfMatrix(S).
+completing :- solution(X,Y), col(Y,C), C = S-1, sizeOfMatrix(S).
+
+:-  completing,
+    solution(X,Y),
+    0 < #count{C: busyCell(X1,Y1,_,C,_), X1 != X, Y1 != Y} < 3.
+
+
+% prefer an incomplete cell
+:~  solution(X,Y),
+    emptyCell(X,Y,1). [1@8]

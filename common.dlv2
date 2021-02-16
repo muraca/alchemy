@@ -32,3 +32,9 @@ col(Y,N) :- #count{X: busyCell(X,Y,_,_,_)} = N, n(Y).
 :- #count{X,Y: solution(X,Y)} > 1.
 :~ #count{X,Y: solution(X,Y)} = 0. [1@11]
 
+emptyCellProperties(X,Y,Neighbors,Completeness,Types,Colors,Empty) :-
+    emptyCell(X,Y,Completeness),
+    #count{X1,Y1: neighbors(X,Y,X1,Y1)} = Neighbors,
+    #count{T: neighbors(X,Y,X1,Y1), busyCell(X1,Y1,T,_,_), T != 0} = Types,
+    #count{C: neighbors(X,Y,X1,Y1), busyCell(X1,Y1,_,C,_), C != 0} = Colors,
+    #count{X1,Y1: neighbors(X,Y,X1,Y1), emptyCell(X1,Y1,_)} = Empty.

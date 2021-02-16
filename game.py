@@ -219,7 +219,6 @@ class Game(Thread):
         super().__init__()
         """constructor, should create an empty board, having size dependant by difficulty"""
         self._running = False
-        # self._board = Board(difficulty * 2 + 7)
         self._board = Board(9)
         self._runes = 6 + (difficulty * 2)
         self._colors = 2 + (difficulty * 2)
@@ -231,8 +230,8 @@ class Game(Thread):
         self._step = False
         self._memento_handler = MementoHandler(self)
         self.weights = [
-            1, #Blank rune
-            0 #Skull bomb
+            4.5-difficulty, #Blank rune
+            5-difficulty, #Skull bomb
         ]
         self.weights.append(100 - sum(self.weights))
         self.pop = [
@@ -240,6 +239,7 @@ class Game(Thread):
             InputRune(-1,0),
             None
         ]
+        self._help = 0.25 if difficulty == 3 else 0.75 if difficulty == 2 else 1
 
 
     def get_points(self) -> int:
@@ -296,7 +296,7 @@ class Game(Thread):
             self._in_rune = InputRune(0,0)
         else:
             self._in_rune = choices(self.pop, self.weights)[0]             
-            while self._in_rune == None or (not self._board.can_be_placed(self._in_rune) and random() > 0.5):
+            while self._in_rune == None or (not self._board.can_be_placed(self._in_rune) and random() > (self._help - (0.15 if self._lives == 1 else 0))):
                 self._in_rune = InputRune(randint(1, self._runes), randint(1, self._colors))
             #debugging
             if not self._board.can_be_placed(self._in_rune):
@@ -326,6 +326,7 @@ class Game(Thread):
             self._in_rune = None
             #display the board with the added rune
             self._sleep()
+            self._sleep()
             p = self._board.compute_board(sol)
             if p > 0:
                 self.lives = Game.MAXLIFEPOINTS
@@ -334,12 +335,12 @@ class Game(Thread):
             self._lives = min(self._lives + 1, Game.MAXLIFEPOINTS)
             #display the board with the changes implied by the added rune (points and removals)
 
-            if self._board.end(): #TODO gamemode endless // complete board
-                self._sleep(5)
+            if self._board.end():
+                self._sleep(3)
                 self._lives = 0
 
 
-    def _sleep(self, time = 0):
+    def _sleep(self, time = 0.15):
         sleep(time)
 
     def rollback(self):
@@ -379,14 +380,12 @@ class AlchemyDLVHandler:
     def _change_files(self, in_rune: InputRune):
         self.input_program.clear_files_paths()
         self.input_program.add_files_path("common.dlv2")
-        if in_rune.get_rune_type() != -1:
-            self.input_program.add_files_path("commonrunes.dlv2")
-            if in_rune.get_rune_type() == 0:
-                self.input_program.add_files_path("blank.dlv2")
-            else:
-                self.input_program.add_files_path("rune.dlv2")
-        else:
+        if in_rune.get_rune_type() == 0:
+            self.input_program.add_files_path("blank.dlv2")
+        elif in_rune.get_rune_type() == -1:
             self.input_program.add_files_path("skullbomb.dlv2")
+        else:
+            self.input_program.add_files_path("rune.dlv2")
 
     def get_solution(self, in_rune: InputRune, board: Board, life_points: int) -> 'Solution':
         self._change_files(in_rune)

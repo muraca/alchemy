@@ -1,3 +1,31 @@
 canBePlaced(X,Y) :- 
-    inputRune(0,_),
-    busyCell(X,Y,_,_,_).
+    inputRune(-1,_),
+    busyCell(X,Y,_,_,_),
+    #count{X1,Y1: neighbors(X,Y,X1,Y1), stuck(X1,Y1,S)} > 0.
+
+% don't remove a blank rune if you have enough life points
+:-  solution(X,Y),
+    busyCell(X,Y,0,_,_),
+    lifePoints(L),
+    L > 2.
+
+stuck(X,Y,S) :-
+    emptyCellProperties(X,Y,Neighbors,Completeness,Types,Colors,Empty),
+    Types >= 2,
+    Colors >= 2,
+    S = Neighbors * 2 - Types - Colors.
+
+% maximize stuckness (minimize not neighbors stuck)
+:~  solution(X,Y),
+    not neighbors(X,Y,X1,Y1),
+    stuck(X1,Y1,S). [S@4]
+
+% try to remove a rune for the less present color
+:~  solution(X,Y),
+    busyCell(X,Y,_,C,_),
+    #count{X1,Y1: busyCell(X1,Y1,_,C,_)} = Pay. [Pay@3]
+
+% try to remove a rune for the less present type
+:~  solution(X,Y),
+    busyCell(X,Y,T,_,_),
+    #count{X1,Y1: busyCell(X1,Y1,T,_,_)} = Pay. [Pay@2]

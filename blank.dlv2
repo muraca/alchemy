@@ -12,6 +12,13 @@ canBePlaced(X,Y) :-
 isEmpty :- 
     #count{X,Y: busyCell(X,Y,_,_,_)} = 0.
 
+% prefer to place in the row/column most near to completeness
+:~  solution(X,Y),
+    row(X,Nx),
+    col(Y,Ny),
+    sizeOfMatrix(S),
+    Pay = (2 * S) - Nx - Ny. [Pay@1]
+
 % if the board is empty, try to put the cell as centred as possible
 :~  isEmpty,
     solution(X,Y),
@@ -22,12 +29,11 @@ isEmpty :-
 :~  not isEmpty,
     solution(X,Y),
     emptyCellProperties(X,Y,Neighbors,Completeness,Types,Colors,Empty),
-    Pay = Completeness + 8 - Types - Colors. [Pay@9]
+    Pay = Completeness + 2 * Neighbors - Types - Colors. [Pay@9]
 
-
-    %Paga di più se hai vicini vuoti
-    %Paghi Completeness se hai n vicini n tipi n colori diversi -> Pay = Completeness + 8 - T - C
-
-
+%always a solution
 :-  #count{X,Y: solution(X,Y)} = 0.
 
+% prefer an incomplete cell
+:~  solution(X,Y),
+    emptyCell(X,Y,1). [1@10]
